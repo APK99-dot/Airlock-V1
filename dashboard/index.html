@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Airlock · Live Ledger</title>
+<style>
+  :root { --bg:#0b0f17; --card:#131a26; --line:#222d40; --dim:#7b8aa5;
+          --allow:#2ecc71; --block:#ff5a5f; --review:#f5c451; --text:#e8eefc; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
+         background:var(--bg); color:var(--text); }
+  header { padding:22px 28px; border-bottom:1px solid var(--line); display:flex;
+           align-items:center; gap:12px; }
+  header h1 { font-size:19px; margin:0; }
+  header .sub { color:var(--dim); font-size:13px; }
+  .stats { display:flex; gap:16px; padding:20px 28px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:14px 20px; min-width:120px; }
+  .stat .n { font-size:28px; font-weight:700; }
+  .stat .l { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+  .allow .n{color:var(--allow)} .block .n{color:var(--block)} .review .n{color:var(--review)}
+  table { width:calc(100% - 56px); margin:8px 28px 40px; border-collapse:collapse; }
+  th { text-align:left; color:var(--dim); font-weight:600; font-size:12px;
+       text-transform:uppercase; letter-spacing:.05em; padding:10px 12px; }
+  td { padding:12px; border-top:1px solid var(--line); vertical-align:top; }
+  .pill { font-weight:700; font-size:12px; padding:3px 10px; border-radius:999px; }
+  .pill.allow{color:var(--allow); background:rgba(46,204,113,.12)}
+  .pill.block{color:var(--block); background:rgba(255,90,95,.12)}
+  .pill.review{color:var(--review); background:rgba(245,196,81,.12)}
+  code { color:#9ecbff; }
+  .reason{color:var(--dim)} .empty{color:var(--dim); padding:40px 28px;}
+</style>
+</head>
+<body>
+  <header>
+    <span style="font-size:22px">🛡️</span>
+    <div><h1>Airlock — Live Ledger</h1>
+    <div class="sub">Every action your agents attempted, and what was decided.</div></div>
+  </header>
+  <div class="stats">
+    <div class="stat allow"><div class="n" id="c-allow">0</div><div class="l">Allowed</div></div>
+    <div class="stat block"><div class="n" id="c-block">0</div><div class="l">Blocked</div></div>
+    <div class="stat review"><div class="n" id="c-review">0</div><div class="l">Reviewed</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Decision</th><th>Action</th><th>Reason</th><th>Latency</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="empty" id="empty">Waiting for verdicts… run <code>python examples/rogue_agent_demo.py</code></div>
+
+<script>
+async function refresh() {
+  try {
+    const r = await fetch('/api/verdicts'); const d = await r.json();
+    c_allow.textContent = d.counts.allow||0;
+    c_block.textContent = d.counts.block||0;
+    c_review.textContent = d.counts.review||0;
+    const tbody = document.getElementById('rows');
+    tbody.innerHTML = '';
+    document.getElementById('empty').style.display = d.verdicts.length ? 'none':'block';
+    for (const v of d.verdicts.slice().reverse()) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><span class="pill ${v.decision}">${v.decision.toUpperCase()}</span></td>
+        <td><code>${v.action}</code></td>
+        <td class="reason">${v.reason||''}</td>
+        <td class="reason">${(v.latency_ms||0).toFixed(2)}ms</td>`;
+      tbody.appendChild(tr);
+    }
+  } catch(e) {}
+}
+refresh(); setInterval(refresh, 1500);
+</script>
+</body>
+</html>

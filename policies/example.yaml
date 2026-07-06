@@ -1,0 +1,62 @@
+# Airlock policy — the guardrails your agents run behind.
+#
+# Read top to bottom, first match wins. A risk or compliance reviewer should be
+# able to read THIS FILE and know exactly what your agents can and cannot do.
+#
+# decision: allow | block | review
+#   allow  -> execute the action
+#   block  -> refuse and raise; the action never runs
+#   review -> pause and ask a human (see approver in your Airlock setup)
+
+version: 1
+default: allow          # actions with no matching rule are allowed through
+
+rules:
+  # --- Hard stops: the "9-second production database deletion" class ---------
+  - name: block-destructive-sql
+    description: Agents may read and insert, but never drop, truncate, or mass-delete.
+    match:
+      action: "db.*"
+      args:
+        query: "(?i)\\b(drop|truncate|delete\\s+from)\\b"
+    decision: block
+    reason: "Destructive SQL (DROP/TRUNCATE/DELETE) is not permitted on this database."
+
+  - name: block-infra-teardown
+    description: No deleting cloud resources, volumes, or backups.
+    match:
+      action: "infra.*"
+      args:
+        command: "(?i)(delete|destroy|rm\\s+-rf|terminate|\\brb\\b).*(volume|backup|cluster|bucket|s3://)"
+    decision: block
+    reason: "Tearing down infrastructure or backups requires a human operator, not an agent."
+
+  # --- PII / data exfiltration ---------------------------------------------
+  - name: block-pii-in-outbound-messages
+    description: Outbound email/chat must not contain obvious PII.
+    match:
+      action: "*.send"
+      args:
+        body: "(?i)(ssn|social security|\\b\\d{3}-\\d{2}-\\d{4}\\b|credit\\s*card)"
+    decision: block
+    reason: "Outbound message appears to contain PII (SSN / card number)."
+
+  # --- Money movement: allow small, review large, hard-stop absurd ----------
+  # Order matters (first match wins): the absolute ceiling is listed BEFORE the
+  # review rule, so a seven-figure refund is blocked outright and never even
+  # reaches a human's queue.
+  - name: block-absurd-refunds
+    description: Sanity ceiling — no agent issues a six-figure+ refund, ever.
+    match:
+      action: "payments.refund"
+      when: "float(args.get('amount', 0)) > 100000"
+    decision: block
+    reason: "Refund exceeds the absolute ceiling ($100k) and was blocked outright."
+
+  - name: review-large-refunds
+    description: Refunds above $10,000 need a human sign-off.
+    match:
+      action: "payments.refund"
+      when: "float(args.get('amount', 0)) > 10000"
+    decision: review
+    reason: "Refunds over $10,000 require human approval."
