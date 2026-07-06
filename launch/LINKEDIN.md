@@ -46,7 +46,7 @@ Airlock is an **action firewall for AI agents**. It sits at the one boundary tha
 🔴 BLOCK — `DROP TABLE customers` → refused, with a reason
 🟡 REVIEW — refund $25,000 → paused for a human
 
-Every attempt lands in an ledger you can hand to compliance. Adding it to an existing agent is one line per tool:
+Every attempt lands in a ledger you can hand to compliance. Adding it to an existing agent is one line per tool:
 
 ```python
 @lock.guard("payments.refund")

@@ -141,7 +141,7 @@ Doing one thing at the right boundary is the point.
 ## Roadmap
 
 - [ ] Slack + web-dashboard approvers (dashboard scaffold in [`dashboard/`](dashboard/))
-- [ ] Policy simulator: replay an ledger against a proposed policy diff
+- [ ] Policy simulator: replay a ledger against a proposed policy diff
 - [ ] Signed, hash-chained ledger for tamper evidence
 - [ ] Prebuilt policy packs (fintech, healthcare, internal-tools)
 
